@@ -1,0 +1,46 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+set local_dist "/Users/a1/Documents/AiGen/Landing_Portfolio/dist"
+set remote_path "C:/Users/hs/Documents/portfolio_dist"
+
+# 1. Create Remote Directory
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+expect "PS"
+send "New-Item -ItemType Directory -Force -Path $remote_path\r"
+expect "PS"
+send "exit\r"
+expect eof
+
+# 2. SCP Transfer (Recursive)
+spawn scp -o StrictHostKeyChecking=no -r $local_dist $user@$host:$remote_path
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SCP Timeout"; exit 1 }
+}
+expect eof
+
+# 3. Docker Deploy
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+expect "PS"
+# Cleanup old
+send "docker rm -f portfolio\r"
+expect "PS"
+# Run New (Mapping inner 'dist' folder because scp -r puts 'dist' INSIDE the target usually, need to check structure)
+# If I scp 'dist' to 'portfolio_dist', I might get 'portfolio_dist/dist' or contents.
+# Let's assume scp -r dist target -> target/dist/index.html
+send "docker run -d --name portfolio -p 80:80 -v 'C:\\Users\\hs\\Documents\\portfolio_dist\\dist:/usr/share/nginx/html' nginx:alpine\r"
+expect "PS"
+send "exit\r"
+expect eof

@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+set file "/Users/a1/Documents/AiGen/Landing_Portfolio/dist.zip"
+set dest_path "C:/Users/hs/Desktop/"
+
+# 1. SCP Transfer
+spawn scp -o StrictHostKeyChecking=no $file $user@$host:$dest_path
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SCP Timeout"; exit 1 }
+}
+expect eof
+
+# 2. SSH to Unzip and Setup
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+send "Expand-Archive -Path C:\\Users\\hs\\Desktop\\dist.zip -DestinationPath C:\\nginx\\html -Force\r"
+expect "PS"
+send "Remove-Item C:\\Users\\hs\\Desktop\\dist.zip\r"
+expect "PS"
+# Check if nginx is running, if not start it, or restart.
+# Assuming standard nginx location if it exists, roughly.
+# Or just ensure it's there.
+send "Get-Service nginx | Restart-Service\r"
+expect "PS"
+send "exit\r"
+expect eof

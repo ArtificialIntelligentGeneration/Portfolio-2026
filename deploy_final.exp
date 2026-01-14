@@ -1,0 +1,23 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+# Open Firewall for 8080
+send "New-NetFirewallRule -DisplayName 'Allow Web 8080' -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow\r"
+expect "PS"
+
+# Start Background 8080
+send "Start-Process -FilePath 'python' -ArgumentList '-m http.server 8080 --directory C:\\Users\\hs\\Documents\\portfolio_dist\\dist' -WindowStyle Hidden\r"
+expect "PS"
+send "exit\r"
+expect eof

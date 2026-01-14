@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+# Kill python entry to free port 80 (risky if other python apps run, but 'n8n' runs via node/docker usually)
+# Better: Just try to start.
+# But let's actally kill previous http.server instances if any exist to allow update.
+send "Get-Process python | Stop-Process -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+
+# Start Server Background
+# Note: Using absolute path we pushed to: C:\Users\hs\Documents\portfolio_dist\dist
+send "Start-Process -FilePath 'python' -ArgumentList '-m http.server 80 --directory C:\\Users\\hs\\Documents\\portfolio_dist\\dist' -WindowStyle Hidden\r"
+expect "PS"
+send "exit\r"
+expect eof

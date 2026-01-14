@@ -1,0 +1,22 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+send "cd Documents\r"
+expect "PS"
+send "dir\r"
+expect "PS"
+send "docker --version\r"
+expect "PS"
+send "exit\r"
+expect eof

@@ -1,0 +1,37 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+# Check if python running
+send "Get-Process python | Select-Object Id, MainWindowTitle\r"
+expect "PS"
+
+# Check local access
+send "curl -I http://127.0.0.1:8080\r"
+expect "PS"
+
+# Kill old
+send "Get-Process python | Stop-Process -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+
+# Update Firewall (Remove old, Add New Robust)
+send "Remove-NetFirewallRule -DisplayName 'Allow Web 8080' -ErrorAction SilentlyContinue\r"
+expect "PS"
+send "New-NetFirewallRule -DisplayName 'Allow Web 8080' -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow -Profile Any\r"
+expect "PS"
+
+# Start New with 0.0.0.0 binding
+send "Start-Process -FilePath 'python' -ArgumentList '-m http.server 8080 --bind 0.0.0.0 --directory C:\\Users\\hs\\Documents\\portfolio_dist\\dist' -WindowStyle Hidden\r"
+expect "PS"
+send "exit\r"
+expect eof

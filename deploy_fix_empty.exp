@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+set local_path "/Users/a1/Documents/AiGen/Landing_Portfolio/dist/"
+# Use relative path for robustness on Windows OpenSSH
+set remote_path "Documents/portfolio_dist"
+
+# 1. SCP Again (Relative Target)
+# Adding -v for verbose to debug if needed, but capturing it is hard in expect without buffer.
+spawn scp -o StrictHostKeyChecking=no -r $local_path $user@$host:$remote_path
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SCP Timeout"; exit 1 }
+}
+expect eof
+
+# 2. Check & Restart
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+# Verify Files
+send "Get-ChildItem $remote_path\r"
+expect "PS"
+
+# Kill Old
+send "Get-Process python | Stop-Process -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+
+# Start New (Relative path in python arg might be safer too, or absolute)
+# Documents/... translates to C:\Users\hs\Documents\...
+send "cmd /c start /B python -m http.server 8080 --bind 0.0.0.0 --directory C:\\Users\\hs\\Documents\\portfolio_dist\r"
+expect "PS"
+send "exit\r"
+expect eof

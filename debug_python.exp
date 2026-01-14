@@ -1,0 +1,25 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+send "python --version\r"
+expect "PS"
+# Try Port 8080 (safer)
+send "python -m http.server 8080 --directory C:\\Users\\hs\\Documents\\portfolio_dist\\dist\r"
+# Wait a bit to see output
+sleep 5
+# Send Ctrl+C
+send "\003"
+expect "PS"
+send "exit\r"
+expect eof

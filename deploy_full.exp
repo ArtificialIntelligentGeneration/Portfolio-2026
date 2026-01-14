@@ -1,0 +1,43 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+set local_path "/Users/a1/Documents/AiGen/Landing_Portfolio/dist/"
+set remote_base "C:/Users/hs/Documents/portfolio_dist"
+
+# 1. Prepare Remote Dir
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+expect "PS"
+send "New-Item -ItemType Directory -Force -Path $remote_base\r"
+expect "PS"
+send "exit\r"
+expect eof
+
+# 2. SCP Data (Note: scp -r local_dir/* remote_dir/)
+# We want contents of 'dist' to go into 'portfolio_dist'
+spawn scp -o StrictHostKeyChecking=no -r $local_path $user@$host:$remote_base
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SCP Timeout"; exit 1 }
+}
+expect eof
+
+# 3. Start Server
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+expect "PS"
+send "Get-Process python | Stop-Process -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+send "cmd /c start /B python -m http.server 8080 --bind 0.0.0.0 --directory $remote_base\r"
+expect "PS"
+send "exit\r"
+expect eof

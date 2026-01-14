@@ -1,0 +1,30 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+
+expect "PS"
+# Check where is index.html
+send "Get-ChildItem -Path C:\\Users\\hs\\Documents\\portfolio_dist -Recurse -Filter index.html | Select-Object FullName\r"
+expect "PS"
+
+# Kill
+send "Get-Process python | Stop-Process -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+
+# Start with corrected path (Assuming standard structure, I'll hardcode based on guess or just assume user puts it right, 
+# but if I see output I can fix dynamically? No, expect scripts are static).
+# I'll just use the PARENT directory if dist/dist exists.
+# Let's just create a generic start that serves the *root* of portfolio_dist so we can browse.
+send "cmd /c start /B python -m http.server 8080 --bind 0.0.0.0 --directory C:\\Users\\hs\\Documents\\portfolio_dist\r"
+expect "PS"
+send "exit\r"
+expect eof

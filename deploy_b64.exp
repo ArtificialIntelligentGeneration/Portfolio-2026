@@ -1,0 +1,65 @@
+#!/usr/bin/expect -f
+
+# Increase timeout for data transfer
+set timeout 600
+set host "100.68.47.90"
+set user "hs"
+set pass "0407"
+set local_b64 "/Users/a1/Documents/AiGen/Landing_Portfolio/dist.b64"
+
+# Read B64 Data
+set fp [open $local_b64 r]
+set file_data [read $fp]
+close $fp
+
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+expect {
+    "password:" { send "$pass\r" }
+    timeout { puts "SSH Timeout"; exit 1 }
+}
+expect "PS"
+
+# Setup Remote Temp File
+send "Remove-Item C:/Users/hs/Documents/dist.b64 -ErrorAction SilentlyContinue\r"
+expect "PS"
+send "New-Item C:/Users/hs/Documents/dist.b64 -ItemType File\r"
+expect "PS"
+
+# Send Data (in chunks to avoid buffer overflow)
+set lines [split $file_data "\n"]
+set counter 0
+
+foreach line $lines {
+    if {[string length $line] > 0} {
+        # Escape special chars if any (base64 is safe mostly but + / = are fine in quotes)
+        # Using Add-Content for speed.
+        send "Add-Content C:/Users/hs/Documents/dist.b64 \"$line\"\r"
+        
+        # Expect prompt every N lines to sync, or just flood? 
+        # Flooding might drop characters. Syncing every line is slow.
+        # Let's sync every 50 lines.
+        incr counter
+        if { $counter % 20 == 0 } {
+            expect "PS"
+        }
+    }
+}
+expect "PS"
+
+# Decode
+send "certutil -decode C:/Users/hs/Documents/dist.b64 C:/Users/hs/Documents/dist.zip\r"
+expect "PS"
+
+# Unzip
+send "Remove-Item C:/Users/hs/Documents/portfolio_dist -Recurse -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+send "Expand-Archive C:/Users/hs/Documents/dist.zip -DestinationPath C:/Users/hs/Documents/portfolio_dist -Force\r"
+expect "PS"
+
+# Restart Server
+send "Get-Process python | Stop-Process -Force -ErrorAction SilentlyContinue\r"
+expect "PS"
+send "cmd /c start /B python -m http.server 8080 --bind 0.0.0.0 --directory C:/Users/hs/Documents/portfolio_dist/dist\r"
+expect "PS"
+send "exit\r"
+expect eof

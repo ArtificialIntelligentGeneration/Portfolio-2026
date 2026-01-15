@@ -24,9 +24,9 @@ export default function Hero() {
                         <span>AI Automation Architect</span>
                     </div>
 
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight leading-tight">
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-6 tracking-tight leading-tight">
                         Создаю <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-cyan via-blue-500 to-accent-purple animate-gradient break-words tracking-tighter">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-cyan via-blue-500 to-accent-purple animate-gradient tracking-tighter">
                             Автоматизированное Будущее
                         </span>
                     </h1>
